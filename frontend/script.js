@@ -1,5 +1,5 @@
 const API_BASE = window.location.hostname === 'localhost' 
-  ? `http://localhost:3000`
+  ? `http://localhost:8080`
   : 'https://mathai-s6wb.onrender.com';
 const chatBox = document.getElementById('chatBox');
 const userInput = document.getElementById('userInput');
@@ -202,33 +202,55 @@ async function sendMessage() {
   const loadingMsg = addMessage('⏳ Solving your problem...', 'loading');
 
   try {
-    const [solveResponse, graphData] = await Promise.all([
-      fetch(API_BASE + '/solve', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question })
-      }),
-      checkForGraph(question)
-    ]);
+    const graphData = await checkForGraph(question);
 
-    const data = await solveResponse.json();
+    const response = await fetch(API_BASE + '/solve/stream', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question })
+    });
+
+    if (!response.ok) throw new Error('Server error: ' + response.status);
+
     loadingMsg.remove();
+    const botMsg = addMessageHTML('', 'bot');
+    let fullText = '';
 
-    if (data.answer) {
-      let html = data.answer.replace(/\n/g, '<br>');
-      if (graphData.needsGraph && graphData.functions.length > 0) {
-        html += `<br><button class="graph-btn" onclick="showGraphFromData()">📈 Show Graph</button>`;
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop(); // keep incomplete line
+
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const raw = line.slice(6).trim();
+        if (raw === '[DONE]') break;
+
+        try {
+          const parsed = JSON.parse(raw);
+          if (parsed.error) {
+            botMsg.innerHTML = '❌ ' + parsed.error;
+            break;
+          }
+          if (parsed.chunk) {
+            fullText += parsed.chunk;
+            botMsg.innerHTML = fullText.replace(/\n/g, '<br>');
+            chatBox.scrollTop = chatBox.scrollHeight;
+          }
+        } catch (e) {}
       }
-      addMessageHTML(html, 'bot');
+    }
 
-      if (graphData.needsGraph && graphData.functions.length > 0) {
-        window.lastGraphData = graphData;
-      }
-      
-
-    } else {
-      const err = data.details || data.error || data.hint || 'Something went wrong. Try again!';
-      addMessage('❌ ' + err, 'bot');
+    if (graphData.needsGraph && graphData.functions.length > 0) {
+      botMsg.innerHTML += `<br><button class="graph-btn" onclick="showGraphFromData()">📈 Show Graph</button>`;
+      window.lastGraphData = graphData;
     }
 
   } catch (error) {
