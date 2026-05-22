@@ -1,0 +1,33 @@
+[
+  {
+    "id": 1779360901891,
+    "question": "square root of 1452365784596524638",
+    "wrongAnswer": "1205141396.1011067",
+    "correctAnswer": "292269344540.6386386",
+    "savedAt": "2026-05-21T10:55:01.891Z"
+  },
+  {
+    "id": 1779361302701,
+    "question": "solve y'' - 4y' + 4y = e^(2x)*ln(x)",
+    "wrongAnswer": "",
+    "correctAnswer": "Answer: $y(x)=e^{2x}\\Bigl(C_{1}+C_{2}x+\\tfrac12\\,x^{2}\\ln x-\\tfrac34\\,x^{2}\\Bigr)$\n\nSolution:\n1. **Identify the ODE type** – It is a second‑order linear ODE with constant coefficients and a non‑homogeneous term $g(x)=e^{2x}\\ln x$.\n2. **Solve the homogeneous equation**  \n   $y''-4y'+4y=0\\;\\Longrightarrow\\;(r-2)^{2}=0$, so $r=2$ (double root).  \n   Hence $y_{h}= (C_{1}+C_{2}x)e^{2x}$.\n3. **Choose variation of parameters** – Fundamental solutions: $y_{1}=e^{2x}$, $y_{2}=xe^{2x}$.  \n   Compute the Wronskian:  \n   $W=y_{1}y_{2}'-y_{2}y_{1}'=e^{2x}\\bigl(e^{2x}(1+2x)\\bigr)-xe^{2x}(2e^{2x})=e^{4x}$.\n4. **Find $u_{1}'$ and $u_{2}'$**  \n   \\[\n   u_{1}'=-\\frac{y_{2}\\,g(x)}{W}= -\\frac{xe^{2x}\\,e^{2x}\\ln x}{e^{4x}}=-x\\ln x,\n   \\qquad\n   u_{2}'=\\frac{y_{1}\\,g(x)}{W}= \\frac{e^{2x}\\,e^{2x}\\ln x}{e^{4x}}=\\ln x.\n   \\]\n5. **Integrate**  \n   \\[\n   u_{1}= -\\int x\\ln x\\,dx = -\\Bigl(\\frac{x^{2}}{2}\\ln x-\\frac{x^{2}}{4}\\Bigr)\n        =-\\frac{x^{2}}{2}\\ln x+\\frac{x^{2}}{4},\n   \\]\n   \\[\n   u_{2}= \\int \\ln x\\,dx = x\\ln x - x.\n   \\]\n6. **Construct the particular solution**  \n   \\[\n   y_{p}=u_{1}y_{1}+u_{2}y_{2}=e^{2x}\\bigl(u_{1}+x\\,u_{2}\\bigr)\n        =e^{2x}\\Bigl[-\\frac{x^{2}}{2}\\ln x+\\frac{x^{2}}{4}+x^{2}\\ln x -x^{2}\\Bigr]\n        =e^{2x}\\Bigl(\\frac12 x^{2}\\ln x-\\frac34 x^{2}\\Bigr).\n   \\]\n7. **Combine homogeneous and particular parts**  \n   \\[\n   y(x)=y_{h}+y_{p}=e^{2x}\\Bigl(C_{1}+C_{2}x+\\frac12 x^{2}\\ln x-\\frac34 x^{2}\\Bigr).\n   \\]",
+    "manualCorrection": false,
+    "savedAt": "2026-05-21T11:01:42.701Z"
+  },
+  {
+    "id": 1779361780427,
+    "question": "what is integral of ln(sin(cosx)) limit 0 to π/2",
+    "wrongAnswer": "",
+    "correctAnswer": "Answer: $-\\displaystyle\\frac{\\pi}{2}\\Bigl(\\ln 2+\\sum_{n=1}^{\\infty}\\frac{J_{0}(2n)}{n}\\Bigr)$\n\nSolution:\n1. Write the Fourier series for $\\ln(\\sin y)$ on $(0,\\pi)$:\n   \\[\n   \\ln(\\sin y)=-\\ln 2-\\sum_{n=1}^{\\infty}\\frac{\\cos(2ny)}{n},\\qquad 0<y<\\pi .\n   \\]\n2. Substitute $y=\\cos x$ to obtain\n   \\[\n   \\ln\\bigl(\\sin(\\cos x)\\bigr)=-\\ln 2-\\sum_{n=1}^{\\infty}\\frac{\\cos\\!\\bigl(2n\\cos x\\bigr)}{n}.\n   \\]\n3. Integrate term‑by‑term from $0$ to $\\pi/2$:\n   \\[\n   \\int_{0}^{\\pi/2}\\!\\ln\\bigl(\\sin(\\cos x)\\bigr)\\,dx\n   =-\\frac{\\pi}{2}\\ln 2-\\sum_{n=1}^{\\infty}\\frac{1}{n}\\int_{0}^{\\pi/2}\\!\\cos\\!\\bigl(2n\\cos x\\bigr)\\,dx .\n   \\]\n4. Use the integral representation of the Bessel function $J_{0}$:\n   \\[\n   J_{0}(2n)=\\frac{1}{\\pi}\\int_{0}^{\\pi}\\!\\cos\\!\\bigl(2n\\cos t\\bigr)\\,dt\n          =\\frac{2}{\\pi}\\int_{0}^{\\pi/2}\\!\\cos\\!\\bigl(2n\\cos x\\bigr)\\,dx .\n   \\]\n   Hence\n   \\[\n   \\int_{0}^{\\pi/2}\\!\\cos\\!\\bigl(2n\\cos x\\bigr)\\,dx=\\frac{\\pi}{2}\\,J_{0}(2n).\n   \\]\n5. Substitute this result back:\n   \\[\n   \\int_{0}^{\\pi/2}\\!\\ln\\bigl(\\sin(\\cos x)\\bigr)\\,dx\n   =-\\frac{\\pi}{2}\\ln 2-\\sum_{n=1}^{\\infty}\\frac{1}{n}\\,\\frac{\\pi}{2}J_{0}(2n)\n   =-\\frac{\\pi}{2}\\Bigl(\\ln 2+\\sum_{n=1}^{\\infty}\\frac{J_{0}(2n)}{n}\\Bigr).\n   \\]",
+    "manualCorrection": false,
+    "savedAt": "2026-05-21T11:09:40.427Z"
+  },
+  {
+    "id": 1779361852158,
+    "question": "\"what is integral of ln(sin(cosx)) limit 0 to π/2",
+    "wrongAnswer": "",
+    "correctAnswer": "Answer: $-\\dfrac{\\pi}{2}\\ln 2$",
+    "manualCorrection": false,
+    "savedAt": "2026-05-21T11:10:52.158Z"
+  }
+]
