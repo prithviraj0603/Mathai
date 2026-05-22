@@ -1,4 +1,6 @@
-const API_BASE = `${window.location.protocol}//${window.location.hostname}:3000`;
+const API_BASE = window.location.hostname === 'localhost' 
+  ? `http://localhost:3000`
+  : 'https://mathai-s6wb.onrender.com';
 const chatBox = document.getElementById('chatBox');
 const userInput = document.getElementById('userInput');
 const graphContainer = document.getElementById('graphContainer');
