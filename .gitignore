@@ -1,4 +1,5 @@
 .env
 backend/.env
 node_modules/
-*.log
+*.lognode_modules/ 
+backend/node_modules/ 
