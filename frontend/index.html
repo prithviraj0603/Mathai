@@ -1355,7 +1355,7 @@ function showGraph(graphData) {
 }
 
 async function checkForGraph(question) {
-  try { const res = await fetch('http://localhost:3000/graph', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({question}) }); return await res.json(); }
+  try { const res = await fetch('https://mathai-s6wb.onrender.com/graph', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({question}) }); return await res.json(); }
   catch(e) { return { needsGraph: false, functions: [] }; }
 }
 
@@ -1552,7 +1552,7 @@ async function sendMessage() {
     addBotMsg('', null, botBubbleId);
     let accumulated = '';
 
-    const streamRes = await fetch('http://localhost:3000/solve/stream', {
+    const streamRes = await fetch('https://mathai-s6wb.onrender.com/solve/stream', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ question, history: buildChatHistory() }),
