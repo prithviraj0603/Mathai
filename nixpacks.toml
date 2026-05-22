@@ -1,5 +1,8 @@
 [phases.setup]
-nixPkgs = ["python3", "python312Packages.pip"]
+nixPkgs = ["python311"]
 
 [phases.install]
-cmds = ["pip install sympy"]
+cmds = ["cd backend && npm ci && pip install sympy"]
+
+[start]
+cmd = "cd backend && node server.js"
