@@ -1,8 +1,0 @@
-[phases.setup] 
-nixPkgs = ["python311"] 
- 
-[phases.install] 
-cmds = ["npm ci", "pip install sympy"] 
- 
-[start] 
-cmd = "node server.js" 
