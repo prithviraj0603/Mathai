@@ -748,6 +748,12 @@ app.get('/health', async (_req, res) => {
   });
 });
 
+// Serve frontend static files
+app.use(express.static(path.join(__dirname, '../frontend')));
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, '../frontend', 'index.html'));
+});
+
 app.listen(port, () => {
   console.log(`\n✅ MathAI server on http://localhost:${port}`);
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
