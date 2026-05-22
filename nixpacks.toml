@@ -2,7 +2,7 @@
 nixPkgs = ["python311"]
 
 [phases.install]
-cmds = ["cd backend && npm ci && pip install sympy"]
+cmds = ["pip install sympy"]
 
 [start]
-cmd = "cd backend && node server.js"
+cmd = "node server.js"
