@@ -603,15 +603,29 @@ app.post('/solve/stream', async (req, res) => {
         .replace(/\\[a-zA-Z]+\{[^}]*\}/g, '') // remove LaTeX commands
         .replace(/[^a-zA-Z\s]/g, ' ');       // keep only words
       const words = plainText.split(/\s+/).filter(Boolean);
-      if (words.length > 120) {
+      if (words.length > 80) {
         const phraseMap = {};
         for (let i = 0; i < words.length - 6; i++) {
           const phrase = words.slice(i, i + 6).join(' ').toLowerCase();
           phraseMap[phrase] = (phraseMap[phrase] || 0) + 1;
-          if (phraseMap[phrase] >= 7) {
+          if (phraseMap[phrase] >= 4) {
             stopStream(
               '\n\n⚠️ Model got stuck repeating itself. Try: "solve step by step using [method name]".'
             );
+            return;
+          }
+        }
+      }
+
+      // Also detect repeated math expressions (e.g. same LaTeX block 3+ times)
+      const mathBlocks = streamBuffer.match(/\$\$[\s\S]{10,}?\$\$/g) || [];
+      if (mathBlocks.length > 4) {
+        const mathMap = {};
+        for (const b of mathBlocks) {
+          const key = b.replace(/\s+/g, ' ').trim();
+          mathMap[key] = (mathMap[key] || 0) + 1;
+          if (mathMap[key] >= 3) {
+            stopStream('\n\n⚠️ Model got stuck repeating itself. Try rephrasing your question.');
             return;
           }
         }
@@ -799,6 +813,14 @@ app.listen(port, '0.0.0.0', () => {
   console.log('Health check: GET /health');
   console.log(`Self-training: POST /correct | GET /corrections | ${corrections.length} correction(s) loaded`);
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+
+  // Keep-alive ping every 10 minutes to prevent Render free tier sleep
+  setInterval(() => {
+    const http = require('http');
+    http.get(`http://localhost:${port}/health`, (res) => {
+      console.log('🏓 Keep-alive ping OK');
+    }).on('error', () => {});
+  }, 10 * 60 * 1000);
 });
 // ── Self-training: save a user correction ─────────────────────────────────
 // POST /correct  { question, wrongAnswer, correctAnswer }
