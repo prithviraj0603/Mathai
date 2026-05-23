@@ -532,7 +532,14 @@ app.get('/health', async (_req, res) => {
   });
 });
 
-app.listen(port, () => {
+// Serve frontend static files
+const path = require('path');
+app.use(express.static(path.join(__dirname, '../frontend')));
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, '../frontend', 'index.html'));
+});
+
+app.listen(port, '0.0.0.0', () => {
   console.log(`\n✅ MathAI server on http://localhost:${port}`);
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   console.log(`DeepSeek: ${process.env.DEEPSEEK_API_KEY ? '✅' : '❌'}  OpenRouter: ${process.env.OPENROUTER_API_KEY ? '✅' : '❌'}`);
