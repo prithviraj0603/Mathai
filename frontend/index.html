@@ -1451,32 +1451,35 @@ function formatMathResponse(text) {
   // 1. Strip \displaystyle
   text = text.replace(/\\displaystyle\s*/g, '');
 
-  // 2. Remove duplicate Answer: at end
+  // 2. Normalize \[...\] → $$...$$ and \(...\) → $...$  BEFORE anything else
+  text = text.replace(/\\\[([\s\S]*?)\\\]/g, (_, inner) => '$$' + inner.trim() + '$$');
+  text = text.replace(/\\\(([\s\S]*?)\\\)/g, (_, inner) => '$' + inner.trim() + '$');
+
+  // 3. Remove duplicate Answer: at end
   const ansMatches = [...text.matchAll(/Answer:\s*\$[^\n$]+\$/g)];
   if (ansMatches.length > 1) {
     const last = ansMatches[ansMatches.length - 1];
     text = text.slice(0, last.index).trimEnd() + text.slice(last.index + last[0].length);
   }
 
-  // 3. Auto-add Answer: label if missing but Solution: exists
+  // 4. Auto-add Answer: label if missing but Solution: exists
   if (!text.match(/^\*{0,2}Answer:/m) && text.match(/^\*{0,2}Solution:/m)) {
     const firstMath = text.match(/^(\$[^$\n]+\$)/);
     if (firstMath) text = 'Answer: ' + text;
   }
 
-  // 4. Normalize labels
+  // 5. Normalize labels
   text = text
     .replace(/^\*{0,2}Answer:\*{0,2}\s*/m, '__ANSWER__')
     .replace(/^\*{0,2}Solution:\*{0,2}\s*/m, '__SOLUTION__')
     .replace(/^📝\s*Solution:\s*/m, '__SOLUTION__');
 
-  // 5. Convert bullet points (- text) to proper lines
+  // 6. Convert bullet points (- text) to proper lines
   text = text.replace(/^[ \t]*-[ \t]+(.+)$/gm, '• $1');
 
-  // 6. Split into math and text chunks
-  // Handle both $...$ inline, $$...$$ display, \[...\] display, \(...\) inline
+  // 7. Split into math and text chunks — $$ display, $ inline
   const parts = [];
-  const mathRe = /(\$\$[\s\S]+?\$\$|\\\[[\s\S]+?\\\]|\$[^$\n]+?\$|\\\([\s\S]+?\\\))/g;
+  const mathRe = /(\$\$[\s\S]+?\$\$|\$[^$\n]+?\$)/g;
   let last = 0, m;
   while ((m = mathRe.exec(text)) !== null) {
     if (m.index > last) parts.push({ type: 'text', value: text.slice(last, m.index) });
@@ -1488,7 +1491,7 @@ function formatMathResponse(text) {
   // 7. Render each part
   let out = parts.map(p => {
     if (p.type === 'math') {
-      const isBlock = p.value.startsWith('$$') || p.value.startsWith('\\[');
+      const isBlock = p.value.startsWith('$$');
       return isBlock ? '<div class="math-display">' + p.value + '</div>' : p.value;
     }
     let t = escapeHtml(p.value);
