@@ -336,6 +336,32 @@
     .graph-btn:hover { background:rgba(255,255,255,0.15); border-color:#fff; box-shadow:0 0 15px rgba(255,255,255,0.2); }
     #input-bar { display:flex; gap:10px; background:#fff; border:1px solid rgba(0,0,0,0.1); border-radius:50px; padding:8px 8px 8px 20px; backdrop-filter:blur(20px); transition:all .3s; position:relative; overflow:hidden; z-index:16; }
     #input-bar:focus-within { box-shadow:0 0 30px rgba(255,255,255,0.1),0 0 0 1px rgba(0,0,0,0.1); }
+    /* Image upload button */
+    #img-upload-btn {
+      width: 36px; height: 36px; border-radius: 50%; border: none;
+      background: rgba(0,0,0,0.08); color: #555; font-size: 1.1rem;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; transition: all .2s; align-self: center;
+    }
+    #img-upload-btn:hover { background: rgba(0,0,0,0.15); color: #000; }
+    #img-file-input { display: none; }
+    /* Image preview */
+    #img-preview-wrap {
+      display: none; position: relative;
+      margin-bottom: 8px; width: fit-content;
+    }
+    #img-preview-wrap.visible { display: block; }
+    #img-preview {
+      max-height: 120px; max-width: 200px; border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.2); object-fit: cover;
+    }
+    #img-remove-btn {
+      position: absolute; top: -6px; right: -6px;
+      width: 20px; height: 20px; border-radius: 50%;
+      background: #ff4444; border: none; color: #fff;
+      font-size: 11px; cursor: pointer; display: flex;
+      align-items: center; justify-content: center; font-weight: bold;
+    }
     #topic-bar { display:flex; gap:6px; padding:6px 12px; overflow-x:auto; scrollbar-width:none; }
     #topic-bar::-webkit-scrollbar { display:none; }
     .topic-btn { flex-shrink:0; padding:4px 12px; border-radius:20px; border:1px solid rgba(255,255,255,0.2); background:rgba(255,255,255,0.05); color:rgba(255,255,255,0.7); font-size:0.72rem; cursor:pointer; transition:all 0.2s; white-space:nowrap; font-family:'Space Mono',monospace; }
@@ -565,8 +591,14 @@
         </div>
         <div id="plotlyGraph"></div>
       </div>
-      <div id="input-bar">
-        <textarea id="user-input" rows="1" placeholder="Ask a math question..."></textarea>
+      <div id="img-preview-wrap">
+          <img id="img-preview" src="" alt="preview"/>
+          <button id="img-remove-btn" onclick="removeImage()">✕</button>
+        </div>
+        <div id="input-bar">
+        <input type="file" id="img-file-input" accept="image/*" onchange="handleImageSelect(event)"/>
+        <button id="img-upload-btn" onclick="document.getElementById('img-file-input').click()" title="Upload math image">📷</button>
+        <textarea id="user-input" rows="1" placeholder="Ask a math question or upload an image..."></textarea>
         <button id="send-btn" title="Send">&#9658;</button>
       </div>
     </div>
@@ -1589,27 +1621,44 @@ function buildChatHistory() {
 }
 async function sendMessage() {
   const inputEl = getEl('user-input');
-  const question = inputEl.value.trim(); if (!question) return;
+  const question = inputEl.value.trim();
+  const hasImage = !!window.selectedImageBase64;
+  if (!question && !hasImage) return;
   if (!currentChatId) newChat();
-  addUserMsg(question);
+
+  const displayText = question || '📷 [Math problem image]';
+  addUserMsg(displayText);
+
+  // Show image preview in chat if image attached
+  if (hasImage && window.selectedImagePreviewUrl) {
+    const imgMsg = document.createElement('div');
+    imgMsg.className = 'msg user';
+    imgMsg.innerHTML = `<div class="bubble" style="padding:6px;background:transparent;border:none;"><img src="${window.selectedImagePreviewUrl}" style="max-height:140px;max-width:220px;border-radius:10px;border:1px solid rgba(255,255,255,0.2);"/></div><div class="avatar usr"><span>YOU</span></div>`;
+    getEl('messages').appendChild(imgMsg);
+  }
+
   inputEl.value = ''; inputEl.style.height = 'auto';
+  const imageBase64 = window.selectedImageBase64 || null;
+  const imageMime = window.selectedImageMime || 'image/jpeg';
+  removeImage();
+
   if (window.setSphereProcessing) window.setSphereProcessing(true);
   showMandala();
   const pg = getEl('processingGlow'); if (pg) pg.classList.add('active');
   addLoading();
   try {
-    // Run graph detection in parallel with streaming
-    const graphDataPromise = checkForGraph(question);
-
-    // Create bot message bubble immediately for streaming into
+    const graphDataPromise = hasImage ? Promise.resolve({ needsGraph: false }) : checkForGraph(question);
     const botBubbleId = 'bot-' + Date.now();
     addBotMsg('', null, botBubbleId);
     let accumulated = '';
 
+    const payload = { question: question || 'Solve the math problem in this image', history: buildChatHistory() };
+    if (imageBase64) { payload.image = imageBase64; payload.imageMime = imageMime; }
+
     const streamRes = await fetch('https://mathai-s6wb.onrender.com/solve/stream', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ question, history: buildChatHistory() }),
+      body: JSON.stringify(payload),
     });
 
     removeLoading();
@@ -1717,6 +1766,40 @@ function toggleMobileSymbols() {
   } else {
     popup.remove();
   }
+}
+
+function handleImageSelect(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    const dataUrl = ev.target.result;
+    const base64 = dataUrl.split(',')[1];
+    window.selectedImageBase64 = base64;
+    window.selectedImageMime = file.type || 'image/jpeg';
+    window.selectedImagePreviewUrl = dataUrl;
+    const wrap = getEl('img-preview-wrap');
+    const preview = getEl('img-preview');
+    preview.src = dataUrl;
+    wrap.classList.add('visible');
+    // Change camera button color to show image selected
+    getEl('img-upload-btn').style.background = 'rgba(0,200,100,0.15)';
+    getEl('img-upload-btn').style.color = '#00c864';
+  };
+  reader.readAsDataURL(file);
+  e.target.value = '';
+}
+
+function removeImage() {
+  window.selectedImageBase64 = null;
+  window.selectedImageMime = null;
+  window.selectedImagePreviewUrl = null;
+  const wrap = getEl('img-preview-wrap');
+  if (wrap) wrap.classList.remove('visible');
+  const preview = getEl('img-preview');
+  if (preview) preview.src = '';
+  const btn = getEl('img-upload-btn');
+  if (btn) { btn.style.background = ''; btn.style.color = ''; }
 }
 
 function copyBubble(btn) {

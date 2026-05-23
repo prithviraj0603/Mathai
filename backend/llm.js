@@ -2,12 +2,19 @@ const axios = require('axios');
 
 /** Current OpenRouter free models (updated 2026 — old :free R1 slugs were removed). */
 const DEFAULT_OPENROUTER_MODELS = [
-  'deepseek/deepseek-v4-flash:free',           // DeepSeek, 1M context, fast
-  'qwen/qwen3-coder:free',                     // strong reasoning, 1M context
-  'openai/gpt-oss-120b:free',                  // OpenAI OSS, 131K context
-  'meta-llama/llama-3.3-70b-instruct:free',   // reliable Meta model
-  'nvidia/nemotron-nano-12b-v2-vl:free',       // NVIDIA, 128K context
-  'openrouter/free',                            // last resort auto-router
+  'deepseek/deepseek-v4-flash:free',
+  'qwen/qwen3-coder:free',
+  'openai/gpt-oss-120b:free',
+  'meta-llama/llama-3.3-70b-instruct:free',
+  'nvidia/nemotron-nano-12b-v2-vl:free',
+  'openrouter/free',
+];
+
+const VISION_MODELS = [
+  'nvidia/nemotron-nano-12b-v2-vl:free',
+  'qwen/qwen2.5-vl-72b-instruct:free',
+  'meta-llama/llama-3.2-11b-vision-instruct:free',
+  'google/gemini-flash-1.5:free',
 ];
 
 function getOpenRouterModels() {
@@ -319,7 +326,7 @@ async function streamDeepSeekDirect({ messages, maxTokens = 10000, temperature =
  * Fixes the "AI bubble appears but stays empty" bug caused by the
  * old race mode where losing racers sent chunks to a dead stream.
  */
-async function streamCompletion({ messages, maxTokens = 10000, temperature = 0.1, onChunk }) {
+async function streamCompletion({ messages, maxTokens = 10000, temperature = 0.1, onChunk, preferVision = false }) {
   const hasDeepSeek = Boolean(process.env.DEEPSEEK_API_KEY?.trim());
   const hasOpenRouter = Boolean(process.env.OPENROUTER_API_KEY?.trim());
 
@@ -327,7 +334,28 @@ async function streamCompletion({ messages, maxTokens = 10000, temperature = 0.1
 
   const errors = [];
 
-  // 1. Try DeepSeek first
+  // For vision requests, skip DeepSeek (no vision) and use vision-capable OpenRouter models
+  if (preferVision && hasOpenRouter) {
+    console.log('👁️ Vision mode: trying vision models...');
+    for (const modelName of VISION_MODELS) {
+      try {
+        console.log(`Vision trying: ${modelName}`);
+        const result = await streamOpenRouter({ messages, modelName, maxTokens, temperature, onChunk });
+        console.log(`Vision OK: ${modelName}`);
+        return result;
+      } catch (e) {
+        const errMsg = formatApiError(e, 'OpenRouter');
+        errors.push(`${modelName}: ${errMsg}`);
+        console.log(`Vision fail: ${modelName}: ${errMsg}`);
+        if (e.response?.status === 429) await new Promise(r => setTimeout(r, 1500));
+        if (e.response?.status === 401) break;
+      }
+    }
+    // fallback to normal models if all vision models fail
+    console.log('Vision models failed, falling back to text models...');
+  }
+
+  // 1. Try DeepSeek first (text only)
   if (hasDeepSeek) {
     try {
       console.log('Trying DeepSeek...');

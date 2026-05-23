@@ -522,10 +522,15 @@ app.post('/solve/stream', async (req, res) => {
   const rawQuestion = body.question ?? body.message ?? body.q;
   const history = Array.isArray(body.history) ? body.history.slice(-6) : [];
   const forcedTopic = body.topic && body.topic !== 'auto' ? body.topic : null;
-  if (!rawQuestion || typeof rawQuestion !== 'string') return res.status(400).json({ error: 'No question provided' });
+  const imageBase64 = body.image || null;
+  const imageMime = body.imageMime || 'image/jpeg';
 
-  const question = preprocessQuestion(rawQuestion);
-  console.log('\n=== Stream:', question);
+  // If image sent with no question, use default prompt
+  const effectiveRawQuestion = rawQuestion || (imageBase64 ? 'Solve the math problem in this image. Show full working steps.' : null);
+  if (!effectiveRawQuestion || typeof effectiveRawQuestion !== 'string') return res.status(400).json({ error: 'No question provided' });
+
+  const question = preprocessQuestion(effectiveRawQuestion);
+  console.log('\n=== Stream:', question, imageBase64 ? '[+IMAGE]' : '');
 
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
@@ -649,7 +654,31 @@ app.post('/solve/stream', async (req, res) => {
   // Inject learned corrections into the prompt
   topicPrompt += buildCorrectionsPrompt(corrections);
 
+  // Build user message — with image if provided
+  function buildUserMessage(text) {
+    if (!imageBase64) return text;
+    return [
+      { type: 'image_url', image_url: { url: `data:${imageMime};base64,${imageBase64}` } },
+      { type: 'text', text: text || 'Solve the math problem in this image. Show full working steps.' }
+    ];
+  }
+
   try {
+    // ── If image provided, skip SymPy/root detection and go straight to AI ──
+    if (imageBase64) {
+      console.log('📸 Image detected → sending to vision-capable model');
+      await streamCompletion({
+        messages: [
+          { role: 'system', content: topicPrompt },
+          ...history,
+          { role: 'user', content: buildUserMessage(question) },
+        ],
+        onChunk: send,
+        preferVision: true,
+      });
+      return done();
+    }
+
     // ── Exact root solver: bypass AI entirely for root problems ──────────────
     if (looksLikeRootProblem(question)) {
       console.log('Root problem detected → SymPy (exact, streamed)');
@@ -659,7 +688,6 @@ app.post('/solve/stream', async (req, res) => {
         return done();
       } catch(e) {
         console.log('SymPy root failed, falling back to AI:', e.message);
-        // fall through to AI below
       }
     }
     // ─────────────────────────────────────────────────────────────────────────
@@ -689,7 +717,7 @@ app.post('/solve/stream', async (req, res) => {
         messages: [
           { role: 'system', content: topicPrompt },
           ...history,
-          { role: 'user', content: hint ? question + '\n\n' + hint : question },
+          { role: 'user', content: buildUserMessage(hint ? question + '\n\n' + hint : question) },
         ],
         onChunk: send,
       });
@@ -700,7 +728,7 @@ app.post('/solve/stream', async (req, res) => {
       messages: [
         { role: 'system', content: topicPrompt },
         ...history,
-        { role: 'user', content: question },
+        { role: 'user', content: buildUserMessage(question) },
       ],
       onChunk: send,
     });
