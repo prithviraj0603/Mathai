@@ -349,6 +349,37 @@
     .suggestion strong { display:block; font-size:11px; color:#fff; letter-spacing:1.5px; text-transform:uppercase; margin-bottom:6px; font-family:'Syne',sans-serif; font-weight:600; }
     .history-trigger { position:fixed; bottom:110px; right:20px; z-index:20; background:rgba(0,0,0,0.7); border:1px solid rgba(255,255,255,0.2); color:#fff; padding:10px 16px; border-radius:50px; font-family:'Syne',sans-serif; font-size:11px; letter-spacing:2px; text-transform:uppercase; cursor:pointer; display:flex; align-items:center; gap:8px; backdrop-filter:blur(10px); transition:all .3s; }
     .history-trigger:hover { background:rgba(255,255,255,0.1); box-shadow:0 0 20px rgba(255,255,255,0.15); }
+
+    /* ===== MOBILE SIDE ICONS ===== */
+    @media (max-width: 768px) {
+      .history-trigger { display: none !important; }
+      #sym-ref-box { display: none !important; }
+      .hamburger { top: 16px; left: 16px; width: 36px; height: 36px; border-radius: 10px; }
+      .mobile-icon-btn {
+        position: fixed;
+        left: 16px;
+        z-index: 25;
+        background: rgba(0,0,0,0.7);
+        border: 1px solid rgba(255,255,255,0.2);
+        color: #fff;
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 17px;
+        transition: all .3s;
+        backdrop-filter: blur(10px);
+      }
+      .mobile-icon-btn:hover { background: rgba(255,255,255,0.1); }
+      #mobile-sym-btn { top: 62px; }
+      #mobile-hist-btn { top: 108px; }
+    }
+    @media (min-width: 769px) {
+      .mobile-icon-btn { display: none !important; }
+    }
   </style>
 <base target="_blank">
 </head>
@@ -397,6 +428,9 @@
 
   <button class="hamburger" onclick="newChat()">&#9998;</button>
   <button class="history-trigger" onclick="openCarousel()">&#128193; History</button>
+  <!-- Mobile side icons -->
+  <button class="mobile-icon-btn" id="mobile-sym-btn" onclick="toggleMobileSymbols()" title="Symbols">&#8721;</button>
+  <button class="mobile-icon-btn" id="mobile-hist-btn" onclick="openCarousel()" title="History">&#128193;</button>
 
   <div class="carousel-overlay" id="carouselOverlay">
     <button class="carousel-close" onclick="closeCarousel()">&#10005;</button>
@@ -1644,7 +1678,27 @@ async function sendMessage() {
   }
 }
 
-function showGraphFromData() { if (window.lastGraphData) showGraph(window.lastGraphData); }
+function toggleMobileSymbols() {
+  let popup = document.getElementById('mobile-sym-popup');
+  if (!popup) {
+    // Build popup from sym-ref-box content
+    const src = document.getElementById('sym-ref-body');
+    popup = document.createElement('div');
+    popup.id = 'mobile-sym-popup';
+    popup.style.cssText = 'position:fixed;top:62px;left:60px;z-index:100;background:rgba(0,0,0,0.92);border:1px solid rgba(255,255,255,0.15);border-radius:14px;padding:12px;max-height:60vh;overflow-y:auto;width:220px;backdrop-filter:blur(20px);';
+    popup.innerHTML = src ? src.innerHTML : '';
+    document.body.appendChild(popup);
+    // Close on outside tap
+    setTimeout(() => document.addEventListener('click', function h(e) {
+      if (!popup.contains(e.target) && e.target.id !== 'mobile-sym-btn') {
+        popup.remove(); document.removeEventListener('click', h);
+      }
+    }), 100);
+  } else {
+    popup.remove();
+  }
+}
+
 
 document.addEventListener('DOMContentLoaded', function() {
   const inputEl = getEl('user-input'), sendBtn = getEl('send-btn');
