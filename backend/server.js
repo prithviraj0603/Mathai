@@ -390,11 +390,11 @@ app.post('/solve/stream', async (req, res) => {
   let streamBuffer = '', lineCount = 0, streamStopped = false;
 
   function getLineLimit(q) {
-    const hard = /fourier|laplace|eigenvalue|series\s+solution|frobenius|variation of param|convolution|green'?s|sturm|bessel|legendre|gamma\s+function|beta\s+function|dirichlet|feynman|contour|residue|partial\s+fraction.*degree|system\s+of\s+ODE|double\s+integral|triple\s+integral|multivariable|multi-part|part.*1|part.*2|challenging|difficult|hard/i;
+    const hard = /fourier|laplace|eigenvalue|series\s+solution|frobenius|variation of param|convolution|green'?s|sturm|bessel|legendre|gamma\s+function|beta\s+function|dirichlet|feynman|contour|residue|partial\s+fraction.*degree|system\s+of\s+ODE|double\s+integral|triple\s+integral/i;
     const moderate = /integrat|differentiat|substitut|by\s+parts|IBP|matrix|determinant|eigen|complex|laplace|ODE|IVP|BVP|taylor|maclaurin|fourier/i;
-    if (hard.test(q)) return 350;
-    if (moderate.test(q)) return 220;
-    return 140;
+    if (hard.test(q)) return 120;
+    if (moderate.test(q)) return 85;
+    return 65;
   }
   // FIX: Use adaptive LINE_LIMIT (was hardcoded 100)
   const LINE_LIMIT = getLineLimit(question);
@@ -411,7 +411,7 @@ app.post('/solve/stream', async (req, res) => {
     try {
       streamBuffer += chunk;
       lineCount += (chunk.match(/\n/g) || []).length;
-      if (lineCount > LINE_LIMIT) { stopStream('\n\n⚠️ Response too long. Try asking more specifically.'); return; }
+      if (lineCount > LINE_LIMIT) { stopStream('\n\n⚠️ This is a very long solution. Try asking one part at a time for a complete answer.'); return; }
       const loopPatterns = [
         { re: /[Ll]et me try (a )?different/g, limit: 3 },
         { re: /[Ll]et'?s try (a )?different (approach|method)/g, limit: 3 },
@@ -422,22 +422,22 @@ app.post('/solve/stream', async (req, res) => {
         { re: /not immediately helpful/g, limit: 3 },
         { re: /this (approach|method) (isn'?t|is not) working/gi, limit: 2 },
         { re: /[Ll]et'?s reconsider/g, limit: 3 },
-        { re: /\n---/g, limit: 15 },
-        { re: /\n\*\*Step \d/g, limit: 30 },
-        { re: /\n#{1,3} Step \d/g, limit: 30 },
+        { re: /\n---/g, limit: 6 },
+        { re: /\n\*\*Step \d/g, limit: 14 },
+        { re: /\n#{1,3} Step \d/g, limit: 14 },
       ];
       for (const { re, limit } of loopPatterns) {
         const count = (streamBuffer.match(re) || []).length;
-        if (count >= limit) { stopStream('\n\n⚠️ Model got stuck in a loop. Try specifying the method, e.g. "solve using Beta function" or "solve using IBP".'); return; }
+        if (count >= limit) { stopStream('\n\n⚠️ This problem is very complex. Try breaking it into parts — ask Part 1 first, then Part 2 separately.'); return; }
       }
-      const plainText = streamBuffer.replace(/\$\$[\s\S]*?\$\$/g, '').replace(/\$[^$\n]*?\$/g, '').replace(/\\[a-zA-Z]+\{[^}]*\}/g, '').replace(/[^a-zA-Z\s]/g, ' ');
+      const plainText = streamBuffer.replace(/\$\$[\s\S]*?\$\$/g, '').replace(/\$[^$\n]*?\$/g, '').replace(/\\[a-zA-Z]+\{[^}]*\}/g, '').replace(/\\[a-zA-Z]+/g, '').replace(/\b(lambda|frac|sqrt|cdot|times|alpha|beta|theta|sigma|delta|omega|begin|end|left|right|matrix|pmatrix|epsilon|infty|partial|nabla|pi|phi|psi|rho|tau|mu|nu|xi|eta|zeta)\b/gi, '').replace(/[^a-zA-Z\s]/g, ' ');
       const words = plainText.split(/\s+/).filter(Boolean);
-      if (words.length > 80) {
+      if (words.length > 200) {
         const phraseMap = {};
         for (let i = 0; i < words.length - 6; i++) {
           const phrase = words.slice(i, i + 6).join(' ').toLowerCase();
           phraseMap[phrase] = (phraseMap[phrase] || 0) + 1;
-          if (phraseMap[phrase] >= 8) { stopStream('\n\n⚠️ Model got stuck repeating itself. Try: "solve step by step using [method name]".'); return; }
+          if (phraseMap[phrase] >= 12) { stopStream('\n\n⚠️ This problem is very complex. Try breaking it into parts — ask Part 1 first, then Part 2 separately.'); return; }
         }
       }
       res.write('data: ' + JSON.stringify({ chunk }) + '\n\n');
