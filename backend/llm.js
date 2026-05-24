@@ -95,7 +95,7 @@ async function callDeepSeekDirect({ messages, model, maxTokens, temperature }) {
   const response = await axios.post(
     'https://api.deepseek.com/chat/completions',
     {
-      model: model || process.env.DEEPSEEK_MODEL || 'deepseek-reasoner',
+      model: model || process.env.DEEPSEEK_MODEL || 'deepseek-chat',
       messages,
       max_tokens: maxTokens,
       temperature,
