@@ -390,11 +390,11 @@ app.post('/solve/stream', async (req, res) => {
   let streamBuffer = '', lineCount = 0, streamStopped = false;
 
   function getLineLimit(q) {
-    const hard = /fourier|laplace|eigenvalue|series\s+solution|frobenius|variation of param|convolution|green'?s|sturm|bessel|legendre|gamma\s+function|beta\s+function|dirichlet|feynman|contour|residue|partial\s+fraction.*degree|system\s+of\s+ODE|double\s+integral|triple\s+integral/i;
+    const hard = /fourier|laplace|eigenvalue|series\s+solution|frobenius|variation of param|convolution|green'?s|sturm|bessel|legendre|gamma\s+function|beta\s+function|dirichlet|feynman|contour|residue|partial\s+fraction.*degree|system\s+of\s+ODE|double\s+integral|triple\s+integral|multivariable|multi-part|part.*1|part.*2|challenging|difficult|hard/i;
     const moderate = /integrat|differentiat|substitut|by\s+parts|IBP|matrix|determinant|eigen|complex|laplace|ODE|IVP|BVP|taylor|maclaurin|fourier/i;
-    if (hard.test(q)) return 120;
-    if (moderate.test(q)) return 85;
-    return 65;
+    if (hard.test(q)) return 350;
+    if (moderate.test(q)) return 220;
+    return 140;
   }
   // FIX: Use adaptive LINE_LIMIT (was hardcoded 100)
   const LINE_LIMIT = getLineLimit(question);
@@ -422,9 +422,9 @@ app.post('/solve/stream', async (req, res) => {
         { re: /not immediately helpful/g, limit: 3 },
         { re: /this (approach|method) (isn'?t|is not) working/gi, limit: 2 },
         { re: /[Ll]et'?s reconsider/g, limit: 3 },
-        { re: /\n---/g, limit: 6 },
-        { re: /\n\*\*Step \d/g, limit: 14 },
-        { re: /\n#{1,3} Step \d/g, limit: 14 },
+        { re: /\n---/g, limit: 15 },
+        { re: /\n\*\*Step \d/g, limit: 30 },
+        { re: /\n#{1,3} Step \d/g, limit: 30 },
       ];
       for (const { re, limit } of loopPatterns) {
         const count = (streamBuffer.match(re) || []).length;
@@ -437,7 +437,7 @@ app.post('/solve/stream', async (req, res) => {
         for (let i = 0; i < words.length - 6; i++) {
           const phrase = words.slice(i, i + 6).join(' ').toLowerCase();
           phraseMap[phrase] = (phraseMap[phrase] || 0) + 1;
-          if (phraseMap[phrase] >= 4) { stopStream('\n\n⚠️ Model got stuck repeating itself. Try: "solve step by step using [method name]".'); return; }
+          if (phraseMap[phrase] >= 8) { stopStream('\n\n⚠️ Model got stuck repeating itself. Try: "solve step by step using [method name]".'); return; }
         }
       }
       res.write('data: ' + JSON.stringify({ chunk }) + '\n\n');
