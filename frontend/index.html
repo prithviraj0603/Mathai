@@ -367,6 +367,95 @@
     .topic-btn { flex-shrink:0; padding:4px 12px; border-radius:20px; border:1px solid rgba(255,255,255,0.2); background:rgba(255,255,255,0.05); color:rgba(255,255,255,0.7); font-size:0.72rem; cursor:pointer; transition:all 0.2s; white-space:nowrap; font-family:'Space Mono',monospace; }
     .topic-btn:hover { background:rgba(255,255,255,0.15); color:#fff; }
     .topic-btn.active { background:rgba(255,255,255,0.22); color:#fff; border-color:rgba(255,255,255,0.6); font-weight:700; }
+
+    /* ===================== MODE SWITCHER ===================== */
+    #mode-switcher {
+      position: fixed;
+      top: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 30;
+      display: flex;
+      align-items: center;
+      background: rgba(0,0,0,0.75);
+      border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 40px;
+      padding: 4px;
+      backdrop-filter: blur(20px);
+      gap: 2px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+    }
+    .mode-pill {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 7px 18px;
+      border-radius: 32px;
+      border: none;
+      background: transparent;
+      color: rgba(255,255,255,0.42);
+      font-family: 'Syne', sans-serif;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.28s cubic-bezier(0.34,1.56,0.64,1);
+      white-space: nowrap;
+      position: relative;
+    }
+    .mode-pill .mode-icon {
+      font-size: 1rem;
+      line-height: 1;
+      transition: transform 0.3s;
+    }
+    .mode-pill:hover { color: rgba(255,255,255,0.75); }
+    .mode-pill.active {
+      background: #fff;
+      color: #000;
+      box-shadow: 0 2px 16px rgba(255,255,255,0.18);
+    }
+    .mode-pill.active .mode-icon { transform: scale(1.15); }
+
+    /* Quantum mode: tint the active pill */
+    body.mode-quantum .mode-pill.active {
+      background: linear-gradient(120deg, #6d28d9, #2563eb);
+      color: #fff;
+      box-shadow: 0 2px 20px rgba(109,40,217,0.45);
+    }
+
+    /* Mode-specific accent on the header logo */
+    body.mode-quantum .logo { background: linear-gradient(135deg,#a78bfa,#60a5fa); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+    body.mode-quantum .status-dot { background: #818cf8; box-shadow: 0 0 8px #818cf8; }
+    body.mode-quantum #input-bar { border-color: rgba(109,40,217,0.35); box-shadow: 0 0 0 1px rgba(109,40,217,0.15); }
+
+    /* Quantum suggestion grid colors */
+    body.mode-quantum .suggestion:hover { border-color: rgba(109,40,217,0.6); box-shadow: 0 0 20px rgba(109,40,217,0.2); }
+
+    /* mode badge on welcome screen */
+    .mode-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-family: 'Space Mono', monospace; font-size: 0.65rem;
+      letter-spacing: 2px; text-transform: uppercase;
+      color: rgba(255,255,255,0.35);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 20px; padding: 4px 12px;
+      margin-bottom: 8px;
+    }
+    body.mode-quantum .mode-badge {
+      color: #a78bfa;
+      border-color: rgba(167,139,250,0.3);
+      background: rgba(109,40,217,0.08);
+    }
+    /* Animate mode transition — flash the glow */
+    @keyframes modeFlash {
+      0% { opacity: 0; } 40% { opacity: 1; } 100% { opacity: 0; }
+    }
+    .mode-flash-overlay {
+      position: fixed; inset: 0; z-index: 29; pointer-events: none;
+      background: radial-gradient(ellipse at center, rgba(109,40,217,0.18) 0%, transparent 70%);
+      animation: modeFlash 0.55s ease forwards;
+    }
     #symbol-bar { display:flex; align-items:center; gap:4px; padding:4px 12px; border-top:1px solid rgba(255,255,255,0.06); overflow-x:auto; scrollbar-width:none; }
     #symbol-bar::-webkit-scrollbar { display:none; }
     .sym-btn { flex-shrink:0; background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.85); border-radius:5px; padding:2px 7px; font-size:0.85rem; cursor:pointer; transition:all 0.15s; }
@@ -505,7 +594,19 @@
 
   <div id="header">
     <div class="logo">∑ MathAI</div>
-    <div class="header-status"><div class="status-dot"></div><span>Online</span></div>
+    <div class="header-status"><div class="status-dot"></div><span id="mode-status-label">Online</span></div>
+  </div>
+
+  <!-- MODE SWITCHER -->
+  <div id="mode-switcher">
+    <button class="mode-pill active" id="pill-math" onclick="setMode('math')">
+      <span class="mode-icon">∑</span>
+      <span>Maths</span>
+    </button>
+    <button class="mode-pill" id="pill-quantum" onclick="setMode('quantum')">
+      <span class="mode-icon">⚛</span>
+      <span>Quantum Mech</span>
+    </button>
   </div>
 
   <button class="hamburger" onclick="newChat()">&#9998;</button>
@@ -609,10 +710,11 @@
     <div id="chat-container">
       <div id="messages">
         <div class="welcome-screen" id="welcomeScreen">
-          <div class="welcome-icon">&#129518;</div>
+          <div class="welcome-icon" id="welcome-icon">&#129518;</div>
+          <div class="mode-badge" id="mode-badge">∑&nbsp;Mathematics Mode</div>
           <div class="welcome-title">MathAI</div>
-          <div class="welcome-sub">Your intelligent math companion</div>
-          <div class="suggestion-grid">
+          <div class="welcome-sub" id="welcome-sub">Your intelligent math companion</div>
+          <div class="suggestion-grid" id="suggestion-grid">
             <div class="suggestion" onclick="useSuggestion('Solve x^2 + 5x + 6 = 0')"><strong>Algebra</strong>Solve x&#178; + 5x + 6 = 0</div>
             <div class="suggestion" onclick="useSuggestion('Integration of sin(x)cos(x)')"><strong>Calculus</strong>Integration of sin(x)cos(x)</div>
             <div class="suggestion" onclick="useSuggestion('Graph of y = x^2 - 4')"><strong>Graph</strong>Graph of y = x&#178; - 4</div>
@@ -1382,13 +1484,38 @@ function hideMandala() {
 }
 
 /* CHAT LOGIC ===== */
+function buildWelcomeHTML() {
+  const mode = window.currentMode || 'math';
+  const cfg = (typeof MODE_CONFIG !== 'undefined' && MODE_CONFIG[mode]) ? MODE_CONFIG[mode] : null;
+  // Fallback for math (MODE_CONFIG may not be defined yet on first call)
+  const icon  = cfg ? cfg.icon  : '&#129518;';
+  const badge = cfg ? cfg.badge : '∑&nbsp;Mathematics Mode';
+  const sub   = cfg ? cfg.sub   : 'Your intelligent math companion';
+  const suggestions = cfg ? cfg.suggestions : [
+    { label: 'Algebra',     text: 'Solve x² + 5x + 6 = 0',      q: 'Solve x^2 + 5x + 6 = 0' },
+    { label: 'Calculus',    text: 'Integration of sin(x)cos(x)', q: 'Integration of sin(x)cos(x)' },
+    { label: 'Graph',       text: 'Graph of y = x² - 4',         q: 'Graph of y = x^2 - 4' },
+    { label: 'Derivatives', text: 'Derivative of ln(x)',         q: 'Derivative of ln(x)' },
+  ];
+  const suggestionsHTML = suggestions.map(s =>
+    `<div class="suggestion" onclick="useSuggestion('${s.q.replace(/'/g, "\\'")}')" ><strong>${s.label}</strong>${s.text}</div>`
+  ).join('');
+  return `<div class="welcome-screen" id="welcomeScreen">
+    <div class="welcome-icon" id="welcome-icon">${icon}</div>
+    <div class="mode-badge" id="mode-badge">${badge}</div>
+    <div class="welcome-title">MathAI</div>
+    <div class="welcome-sub" id="welcome-sub">${sub}</div>
+    <div class="suggestion-grid" id="suggestion-grid">${suggestionsHTML}</div>
+  </div>`;
+}
+
 function newChat() {
   currentChatId = generateId();
   conversations[currentChatId] = { title: 'New Conversation', messages: [] };
   saveConversations();
   const messagesEl = document.getElementById('messages');
   if (!messagesEl) return;
-  messagesEl.innerHTML = '<div class="welcome-screen" id="welcomeScreen"><div class="welcome-icon">&#129518;</div><div class="welcome-title">MathAI</div><div class="welcome-sub">Your intelligent math companion</div><div class="suggestion-grid"><div class="suggestion" onclick="useSuggestion(\'Solve x^2 + 5x + 6 = 0\')"><strong>Algebra</strong>Solve x&#178; + 5x + 6 = 0</div><div class="suggestion" onclick="useSuggestion(\'Integration of sin(x)cos(x)\')"><strong>Calculus</strong>Integration of sin(x)cos(x)</div><div class="suggestion" onclick="useSuggestion(\'Graph of y = x^2 - 4\')"><strong>Graph</strong>Graph of y = x&#178; - 4</div><div class="suggestion" onclick="useSuggestion(\'Derivative of ln(x)\')"><strong>Derivatives</strong>Derivative of ln(x)</div></div></div>';
+  messagesEl.innerHTML = buildWelcomeHTML();
   const gw = document.getElementById('graphWrap'); if (gw) gw.style.display = 'none';
 }
 
@@ -1667,6 +1794,11 @@ async function sendMessage() {
   const question = inputEl.value.trim();
   const hasImage = !!window.selectedImageBase64;
   if (!question && !hasImage) return;
+
+  // ── MODE GUARD: block wrong-mode questions ──────────────────
+  if (question && !checkModeGuard(question)) return;
+  // ────────────────────────────────────────────────────────────
+
   if (!currentChatId) newChat();
 
   const displayText = question || '📷 [Math problem image]';
@@ -1695,7 +1827,7 @@ async function sendMessage() {
     addBotMsg('', null, botBubbleId);
     let accumulated = '';
 
-    const payload = { question: question || 'Solve the math problem in this image', history: buildChatHistory() };
+    const payload = { question: question || 'Solve the math problem in this image', history: buildChatHistory(), topic: window.currentMode === 'quantum' ? 'quantum' : 'auto' };
     if (imageBase64) { payload.image = imageBase64; payload.imageMime = imageMime; }
 
     const streamRes = await fetch('https://mathai-s6wb.onrender.com/solve/stream', {
@@ -1860,6 +1992,138 @@ function copyBubble(btn) {
     btn.textContent = '✓ COPIED'; btn.classList.add('copied');
     setTimeout(() => { btn.textContent = '⎘ COPY'; btn.classList.remove('copied'); }, 2000);
   });
+}
+
+/* ================================================================
+   MODE SWITCHER — MATHS vs QUANTUM MECH
+   Strict mode: each mode only accepts its own type of question.
+   ================================================================ */
+window.currentMode = 'math'; // 'math' | 'quantum'
+
+const MODE_CONFIG = {
+  math: {
+    body: '',
+    badge: '∑&nbsp;Mathematics Mode',
+    icon: '&#129518;',
+    sub: 'Your intelligent math companion',
+    placeholder: 'Ask a maths question or upload an image...',
+    logo: '∑ MathAI',
+    statusLabel: 'Maths',
+    suggestions: [
+      { label: 'Algebra',     text: 'Solve x² + 5x + 6 = 0',        q: 'Solve x^2 + 5x + 6 = 0' },
+      { label: 'Calculus',    text: 'Integration of sin(x)cos(x)',   q: 'Integration of sin(x)cos(x)' },
+      { label: 'Graph',       text: 'Graph of y = x² - 4',           q: 'Graph of y = x^2 - 4' },
+      { label: 'Derivatives', text: 'Derivative of ln(x)',           q: 'Derivative of ln(x)' },
+    ],
+    blocked: '⚠️ This is Maths Mode. Switch to ⚛ Quantum Mech for physics questions.',
+  },
+  quantum: {
+    body: 'mode-quantum',
+    badge: '⚛&nbsp;Quantum Mech Mode',
+    icon: '⚛',
+    sub: 'Quantum mechanics, classical physics & beyond',
+    placeholder: 'Ask a quantum / physics question...',
+    logo: '⚛ MathAI',
+    statusLabel: 'Quantum Mech',
+    suggestions: [
+      { label: 'Quantum',    text: 'Energy levels of hydrogen atom',         q: 'Find the energy levels of the hydrogen atom' },
+      { label: 'Schrödinger',text: 'Particle in an infinite square well',    q: 'Solve the Schrödinger equation for a particle in an infinite square well' },
+      { label: 'Relativity', text: 'Time dilation at v = 0.8c',             q: 'Calculate time dilation for v = 0.8c' },
+      { label: 'Nuclear',    text: 'Half-life decay in 20 years',            q: 'A radioactive sample has half-life of 5 years. How much remains after 20 years?' },
+    ],
+    blocked: '⚠️ This is Quantum Mech Mode. Switch to ∑ Maths for pure maths questions.',
+  },
+};
+
+/* ── Keyword classifiers ─────────────────────────────────────── */
+const PHYSICS_RE = /\b(schr[oö]dinger|wave\s*function|hamiltonian|bra.?ket|dirac\s*notation|eigenstate|eigenvalue|hermitian|commutator|uncertainty\s+principle|heisenberg|pauli|spin[\s\-](half|up|down|orbit|state|1\/2)|angular\s+momentum|ladder\s+operator|raising|lowering\s+operator|harmonic\s+oscillator|zero.?point\s+energy|particle\s+in\s+a\s+box|infinite\s+well|finite\s+well|hydrogen\s+atom|bohr\s+(model|radius|energy)|energy\s+level|quantum\s+number|orbital|spherical\s+harmonic|perturbation\s+theory|variational\s+method|WKB|tunneling|transmission\s+coefficient|reflection\s+coefficient|fermi.?dirac|bose.?einstein|identical\s+particle|selection\s+rule|fermi.?golden\s+rule|density\s+matrix|mixed\s+state|von\s+neumann|decoherence|entanglement|superposition|de\s+broglie|matter\s+wave|photon|planck|photoelectric|compton|blackbody|quantiz|spin.?orbit|fine\s+structure|stark\s+effect|zeeman\s+effect|lorentz\s+(transform|boost|factor)|time\s+dilation|length\s+contraction|spacetime|four.?vector|four.?momentum|minkowski|special\s+relativity|relativistic|e\s*=\s*mc|radioactive\s+decay|half.?life|nuclear\s+binding|mass\s+defect|fission|fusion\s+energy|alpha\s+decay|beta\s+decay|gamma\s+ray|nuclear|carnot|heat\s+engine|entropy|partition\s+function|maxwell.?boltzmann|biot.?savart|ampere|faraday|lenz|maxwell.?equation|poynting|electromagnetic\s+wave|snell|diffraction|interference|thin\s+lens|doppler|standing\s+wave|normal\s+mode|coupled\s+oscillator|lagrangian|euler.?lagrange|kepler|central\s+force|moment\s+of\s+inertia|rigid\s+body|torque|quantum|physics|ψ|ℏ|hbar|wavefunction|photon|electron\s+volt|eV\b|coulomb.?law|gauss.?law|electric\s+field|magnetic\s+field|capacitor|inductor|resistor.*circuit|kirchhoff|ohm.?law|ampere.?law)\b/i;
+
+const PURE_MATH_RE = /\b(integrat|differentiat|derivative|calculus|algebra|geometry|trigonometry|matrix|determinant|eigenvalue|polynomial|equation|inequality|limit|series|sequence|probability|statistics|vector\s+space|linear\s+algebra|fourier\s+series|laplace\s+transform|z.?transform|differential\s+equation|ODE|PDE|complex\s+number|number\s+theory|combinatorics|permutation|binomial|logarithm|exponent|quadratic|cubic|factori[sz]|prime|modular|graph\s+theory|topology|set\s+theory|proof|theorem|lemma)\b/i;
+
+function looksLikePhysics(q) { return PHYSICS_RE.test(q); }
+function looksLikePureMath(q) { return PURE_MATH_RE.test(q) && !looksLikePhysics(q); }
+
+/* ── Mode guard: call before sending ────────────────────────── */
+function checkModeGuard(question) {
+  if (!question || question.length < 6) return true; // too short to classify, allow
+  const isPhysics = looksLikePhysics(question);
+  const isMath    = looksLikePureMath(question);
+
+  if (window.currentMode === 'math' && isPhysics && !isMath) {
+    showModeBlockedMsg(MODE_CONFIG.math.blocked);
+    return false;
+  }
+  if (window.currentMode === 'quantum' && isMath && !isPhysics) {
+    showModeBlockedMsg(MODE_CONFIG.quantum.blocked);
+    return false;
+  }
+  return true; // allowed
+}
+
+function showModeBlockedMsg(msg) {
+  // Remove any existing block toast
+  const old = document.getElementById('mode-blocked-toast');
+  if (old) old.remove();
+
+  const toast = document.createElement('div');
+  toast.id = 'mode-blocked-toast';
+  toast.style.cssText = [
+    'position:fixed','bottom:110px','left:50%','transform:translateX(-50%)',
+    'z-index:9999','background:rgba(0,0,0,0.92)','border:1px solid rgba(255,255,255,0.22)',
+    'border-radius:14px','padding:13px 22px','font-family:Space Mono,monospace',
+    'font-size:0.78rem','color:#fff','letter-spacing:0.5px','max-width:88vw',
+    'text-align:center','backdrop-filter:blur(20px)',
+    'box-shadow:0 4px 30px rgba(0,0,0,0.6)',
+    'animation:toastIn 0.3s cubic-bezier(0.34,1.56,0.64,1)'
+  ].join(';');
+
+  // Add the switch button inline
+  const otherMode = window.currentMode === 'math' ? 'quantum' : 'math';
+  const otherLabel = window.currentMode === 'math' ? '⚛ Quantum Mech' : '∑ Maths';
+  toast.innerHTML = `${msg}<br><button onclick="setMode('${otherMode}');document.getElementById('mode-blocked-toast').remove();" style="margin-top:10px;padding:6px 18px;border-radius:20px;border:1px solid rgba(255,255,255,0.4);background:rgba(255,255,255,0.1);color:#fff;font-family:Syne,sans-serif;font-size:0.72rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;">Switch to ${otherLabel}</button>`;
+
+  document.body.appendChild(toast);
+  setTimeout(() => { if (toast.parentNode) toast.remove(); }, 5000);
+}
+
+/* Add toast animation keyframes once */
+(function() {
+  const s = document.createElement('style');
+  s.textContent = '@keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(18px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}';
+  document.head.appendChild(s);
+})();
+
+/* ── setMode ─────────────────────────────────────────────────── */
+function setMode(mode) {
+  if (window.currentMode === mode) return;
+  window.currentMode = mode;
+  const cfg = MODE_CONFIG[mode];
+
+  // Body class for CSS theming
+  document.body.className = cfg.body;
+
+  // Pill active states
+  document.getElementById('pill-math').classList.toggle('active', mode === 'math');
+  document.getElementById('pill-quantum').classList.toggle('active', mode === 'quantum');
+
+  // Logo & status
+  const logoEl = document.querySelector('.logo');
+  if (logoEl) logoEl.textContent = cfg.logo;
+  const statusEl = document.getElementById('mode-status-label');
+  if (statusEl) statusEl.textContent = cfg.statusLabel;
+
+  // Placeholder
+  const inp = document.getElementById('user-input');
+  if (inp) inp.placeholder = cfg.placeholder;
+
+  // Flash overlay
+  const flash = document.createElement('div');
+  flash.className = 'mode-flash-overlay';
+  document.body.appendChild(flash);
+  flash.addEventListener('animationend', () => flash.remove());
+
+  // Rebuild welcome screen with correct mode suggestions via newChat
+  newChat();
 }
 
 document.addEventListener('DOMContentLoaded', function() {
