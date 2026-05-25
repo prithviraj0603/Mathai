@@ -1,5 +1,24 @@
+# Environment
 .env
-backend/.env
+.env.local
+.env.production
+
+# Dependencies
 node_modules/
-*.lognode_modules/ 
-backend/node_modules/ 
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+
+# Runtime
+*.pid
+*.seed
+
+# Build
+dist/
+build/
