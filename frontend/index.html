@@ -427,7 +427,44 @@
     /* Mode-specific accent on the header logo */
     body.mode-quantum .logo { background: linear-gradient(135deg,#a78bfa,#60a5fa); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
     body.mode-quantum .status-dot { background: #818cf8; box-shadow: 0 0 8px #818cf8; }
-    body.mode-quantum #input-bar { border-color: rgba(109,40,217,0.35); box-shadow: 0 0 0 1px rgba(109,40,217,0.15); }
+    body.mode-quantum #input-bar {
+      background: rgba(10,8,30,0.75);
+      border: 1px solid rgba(109,40,217,0.45);
+      box-shadow: 0 0 0 1px rgba(109,40,217,0.15), 0 0 24px rgba(109,40,217,0.12);
+      backdrop-filter: blur(24px);
+    }
+    body.mode-quantum #user-input { color: #e0d9ff; }
+    body.mode-quantum #user-input::placeholder { color: rgba(167,139,250,0.45); }
+    body.mode-quantum #send-btn {
+      background: linear-gradient(135deg, #6d28d9, #2563eb);
+      box-shadow: 0 0 16px rgba(109,40,217,0.4);
+    }
+    body.mode-quantum #send-btn:hover { box-shadow: 0 0 28px rgba(109,40,217,0.65); }
+    body.mode-quantum #img-upload-btn { color: rgba(167,139,250,0.7); background: rgba(109,40,217,0.12); }
+    body.mode-quantum #img-upload-btn:hover { background: rgba(109,40,217,0.25); color: #a78bfa; }
+    body.mode-quantum #symbol-bar { border-top-color: rgba(109,40,217,0.18); }
+    body.mode-quantum .sym-btn { background: rgba(109,40,217,0.12); border-color: rgba(109,40,217,0.3); color: #c4b5fd; }
+    body.mode-quantum .sym-btn:hover { background: rgba(109,40,217,0.28); border-color: #a78bfa; color: #fff; }
+    body.mode-quantum .sym-sep { color: rgba(109,40,217,0.4); }
+    body.mode-quantum #sym-toggle { color: rgba(167,139,250,0.55); }
+    body.mode-quantum #sym-toggle:hover { color: #a78bfa; background: rgba(109,40,217,0.15); }
+    body.mode-quantum .suggestion {
+      background: rgba(109,40,217,0.08);
+      border-color: rgba(109,40,217,0.22);
+    }
+    body.mode-quantum .suggestion:hover {
+      background: rgba(109,40,217,0.18);
+      border-color: rgba(167,139,250,0.5);
+      box-shadow: 0 8px 30px rgba(109,40,217,0.2);
+    }
+    body.mode-quantum .suggestion strong { color: #a78bfa; }
+    body.mode-quantum .topic-btn {
+      border-color: rgba(109,40,217,0.3);
+      background: rgba(109,40,217,0.08);
+      color: rgba(167,139,250,0.75);
+    }
+    body.mode-quantum .topic-btn:hover { background: rgba(109,40,217,0.2); color: #c4b5fd; }
+    body.mode-quantum .topic-btn.active { background: rgba(109,40,217,0.3); border-color: #a78bfa; color: #fff; }
 
     /* Quantum suggestion grid colors */
     body.mode-quantum #three-canvas { opacity: 0; transition: opacity 0.8s ease; pointer-events: none; }
@@ -1813,7 +1850,7 @@ async function sendMessage() {
 
   if (!currentChatId) newChat();
 
-  const displayText = question || '📷 [Math problem image]';
+  const displayText = question || (window.currentMode === 'quantum' ? '📷 [Physics problem image]' : '📷 [Math problem image]');
   addUserMsg(displayText);
 
   // Show image preview in chat if image attached
@@ -1839,7 +1876,12 @@ async function sendMessage() {
     addBotMsg('', null, botBubbleId);
     let accumulated = '';
 
-    const payload = { question: question || 'Solve the math problem in this image', history: buildChatHistory(), topic: window.currentMode === 'quantum' ? 'quantum' : 'auto' };
+    const chatHistory = buildChatHistory();
+    const modeContext = window.currentMode === 'quantum'
+      ? [{ role: 'user', content: 'You are QuantumAI, an expert in quantum mechanics, classical physics, relativity, and nuclear physics. Always respond as a physics expert. Never greet the user with math-related language — say physics or quantum mechanics instead.' },
+         { role: 'assistant', content: 'Understood. I am QuantumAI, your quantum mechanics and physics expert.' }]
+      : [];
+    const payload = { question: question || 'Solve the math problem in this image', history: [...modeContext, ...chatHistory], topic: window.currentMode === 'quantum' ? 'quantum' : 'auto', mode: window.currentMode };
     if (imageBase64) { payload.image = imageBase64; payload.imageMime = imageMime; }
 
     const streamRes = await fetch('https://mathai-s6wb.onrender.com/solve/stream', {
