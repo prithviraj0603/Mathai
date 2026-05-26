@@ -1944,7 +1944,11 @@ const streamRes = await fetch('https://mathai-s6wb.onrender.com/solve/stream', {
         try {
           const parsed = JSON.parse(payload);
           if (parsed.error) throw new Error(parsed.error);
-          if (parsed.chunk) accumulated += parsed.chunk;
+          if (parsed.chunk) {
+            accumulated += parsed.chunk;
+            const liveEl = document.getElementById(botBubbleId);
+            if (liveEl) liveEl.innerHTML = formatMathResponse(accumulated) + '<span class="cursor-blink">&#9611;</span>';
+          }
         } catch(pe) {}
       }
     }
