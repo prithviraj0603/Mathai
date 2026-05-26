@@ -1912,8 +1912,11 @@ const streamRes = await fetch('https://mathai-s6wb.onrender.com/solve/stream', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        question: userContent,
-        history: chatHistory.slice(0, -1)
+        question: question || 'Solve the math problem in this image.',
+        history: chatHistory.slice(0, -1),
+        topic: window.currentMode === 'quantum' ? 'quantum' : 'auto',
+        imageBase64: imageBase64 || undefined,
+        imageMime: imageMime || undefined
       })
     });
     removeLoading();
