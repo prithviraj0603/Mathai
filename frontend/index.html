@@ -1878,7 +1878,6 @@ async function sendMessage() {
   try {
     const graphDataPromise = hasImage ? Promise.resolve({ needsGraph: false }) : checkForGraph(question);
     const botBubbleId = 'bot-' + Date.now();
-    addBotMsg('', null, botBubbleId);
     let accumulated = '';
 
     const chatHistory = buildChatHistory();
@@ -1920,6 +1919,7 @@ const streamRes = await fetch('https://mathai-s6wb.onrender.com/solve/stream', {
       })
     });
     removeLoading();
+    addBotMsg('', null, botBubbleId);
     hideMandala();
     if (window.setSphereProcessing) window.setSphereProcessing(false);
     if (pg) pg.classList.remove('active');
