@@ -1656,8 +1656,21 @@ function showGraph(graphData) {
 }
 
 async function checkForGraph(question) {
-  try { const res = await fetch('https://mathai-s6wb.onrender.com/graph', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({question}) }); return await res.json(); }
-  catch(e) { return { needsGraph: false, functions: [] }; }
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 256,
+        system: 'You are a graph detection assistant. Given a math question, decide if it needs a graph. Respond ONLY with valid JSON: {"needsGraph": true/false, "functions": ["y=..."], "xMin": number, "xMax": number}. No markdown, no explanation.',
+        messages: [{ role: 'user', content: question }]
+      })
+    });
+    const data = await res.json();
+    const text = (data.content || []).map(b => b.text || '').join('').replace(/```json|```/g,'').trim();
+    return JSON.parse(text);
+  } catch(e) { return { needsGraph: false, functions: [] }; }
 }
 
 function formatMathResponse(text) {
@@ -1876,17 +1889,42 @@ async function sendMessage() {
     let accumulated = '';
 
     const chatHistory = buildChatHistory();
-    const modeContext = window.currentMode === 'quantum'
-      ? [{ role: 'user', content: 'You are QuantumAI, an expert in quantum mechanics, classical physics, relativity, and nuclear physics. Always respond as a physics expert. Never greet the user with math-related language — say physics or quantum mechanics instead.' },
-         { role: 'assistant', content: 'Understood. I am QuantumAI, your quantum mechanics and physics expert.' }]
-      : [];
-    const payload = { question: question || 'Solve the math problem in this image', history: [...modeContext, ...chatHistory], topic: window.currentMode === 'quantum' ? 'quantum' : 'auto', mode: window.currentMode };
-    if (imageBase64) { payload.image = imageBase64; payload.imageMime = imageMime; }
 
-    const streamRes = await fetch('https://mathai-s6wb.onrender.com/solve/stream', {
+    // Build system prompt based on mode
+    const systemPrompt = window.currentMode === 'quantum'
+      ? 'You are QuantumAI, an expert in quantum mechanics, classical physics, relativity, and nuclear physics. Solve problems step-by-step. Use LaTeX math notation wrapped in $...$ for inline math and $$...$$ for display math. Label your answer as "Answer:" and solution steps as "Solution:".'
+      : 'You are MathAI, an expert mathematician. Solve problems step-by-step. Use LaTeX math notation wrapped in $...$ for inline math and $$...$$ for display math. Label your answer as "Answer:" and solution steps as "Solution:".';
+
+    // Build user message content (supports image)
+    const userContent = [];
+    if (imageBase64) {
+      userContent.push({ type: 'image', source: { type: 'base64', media_type: imageMime, data: imageBase64 } });
+    }
+    userContent.push({ type: 'text', text: question || 'Solve the math problem in this image.' });
+
+    // Build messages array with chat history
+    const messages = [...(window.currentMode === 'quantum'
+      ? [{ role: 'user', content: 'You are QuantumAI, an expert in quantum mechanics, classical physics, relativity, and nuclear physics. Always respond as a physics expert.' },
+         { role: 'assistant', content: 'Understood. I am QuantumAI, your quantum mechanics and physics expert.' }]
+      : []), ...chatHistory.slice(0, -1), { role: 'user', content: userContent }];
+
+    // Show thinking cursor
+    const el = document.getElementById(botBubbleId);
+    if (el) el.innerHTML = '<span class="cursor-blink">&#9611;</span>';
+
+    const apiRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
+      headers: {
+        'Content-Type': 'application/json',
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1500,
+        system: systemPrompt,
+        messages: messages.length > 0 ? messages : [{ role: 'user', content: userContent }]
+      })
     });
 
     removeLoading();
@@ -1894,60 +1932,13 @@ async function sendMessage() {
     if (window.setSphereProcessing) window.setSphereProcessing(false);
     if (pg) pg.classList.remove('active');
 
-    if (!streamRes.ok) {
-      const errData = await streamRes.json().catch(() => ({}));
-      throw new Error(errData.error || 'Server error');
+    if (!apiRes.ok) {
+      const errData = await apiRes.json().catch(() => ({}));
+      throw new Error(errData.error?.message || 'API error');
     }
 
-    const reader = streamRes.body.getReader();
-    const decoder = new TextDecoder();
-    let sseBuffer = '';
-    let streamDone = false;
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      sseBuffer += decoder.decode(value, { stream: true });
-      const lines = sseBuffer.split('\n');
-      sseBuffer = lines.pop();
-      for (const line of lines) {
-        const t = line.trim();
-        if (!t || !t.startsWith('data: ')) continue;
-        const payload = t.slice(6);
-        if (payload === '[DONE]') { streamDone = true; break; }
-        try {
-          const parsed = JSON.parse(payload);
-          if (parsed.error) throw new Error(parsed.error);
-          if (parsed.chunk) {
-            accumulated += parsed.chunk;
-            try {
-              const el = document.getElementById(botBubbleId);
-              if (el) {
-                // Stream line by line: render each completed line, show cursor on current
-                const lines = accumulated.split('\n');
-                let html = '';
-                for (let i = 0; i < lines.length; i++) {
-                  const line = lines[i];
-                  const isLast = i === lines.length - 1;
-                  // Render math in completed lines
-                  const safe = line
-                    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-                    .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>');
-                  if (isLast) {
-                    html += safe + '<span class="cursor-blink">&#9611;</span>';
-                  } else {
-                    html += safe + '<br>';
-                  }
-                }
-                el.innerHTML = html;
-                const msgs = getEl('messages'); if (msgs) msgs.scrollTop = msgs.scrollHeight;
-              }
-            } catch(re) { console.warn('render err', re); }
-          }
-        } catch(pe) { if (pe.message !== 'Unexpected end of JSON input') console.warn(pe); }
-      }
-      if (streamDone) break;
-    }
+    const apiData = await apiRes.json();
+    accumulated = (apiData.content || []).map(b => b.text || '').join('');
 
     // Final render — remove cursor, re-render math, add graph button
     const graphData = await graphDataPromise;
@@ -1971,7 +1962,7 @@ async function sendMessage() {
     hideMandala();
     if (window.setSphereProcessing) window.setSphereProcessing(false);
     const pg2 = getEl('processingGlow'); if (pg2) pg2.classList.remove('active');
-    addBotMsg('&#10060; Cannot connect to server. Make sure backend is running!');
+    addBotMsg('&#10060; Error: ' + (e.message || 'Could not get a response. Please try again.'));
   }
 }
 
