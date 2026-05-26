@@ -1920,7 +1920,10 @@ const streamRes = await fetch('https://mathai-s6wb.onrender.com/solve/stream', {
     hideMandala();
     if (window.setSphereProcessing) window.setSphereProcessing(false);
     if (pg) pg.classList.remove('active');
-    if (!streamRes.ok) throw new Error('Stream error');
+    if (!streamRes.ok) {
+  const errData = await streamRes.json().catch(() => ({}));
+  throw new Error(errData.error || errData.details || 'Stream error ' + streamRes.status);
+}
     const reader = streamRes.body.getReader();
     const decoder = new TextDecoder();
     let sseBuffer = '';
