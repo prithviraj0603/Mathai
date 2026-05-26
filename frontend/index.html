@@ -1885,8 +1885,8 @@ async function sendMessage() {
 
     // Build system prompt based on mode
     const systemPrompt = window.currentMode === 'quantum'
-      ? 'You are QuantumAI, an expert in quantum mechanics, classical physics, relativity, and nuclear physics. Solve problems step-by-step. Use LaTeX math notation wrapped in $...$ for inline math and $$...$$ for display math. Label your answer as "Answer:" and solution steps as "Solution:".'
-      : 'You are MathAI, an expert mathematician. Solve problems step-by-step. Use LaTeX math notation wrapped in $...$ for inline math and $$...$$ for display math. Label your answer as "Answer:" and solution steps as "Solution:".';
+      ? 'You are QuantumAI, an expert ONLY in quantum mechanics, classical physics, relativity, and nuclear physics. You ONLY answer physics and quantum-related questions. If the user asks anything outside of physics (e.g. pure math, general knowledge, coding), respond with: "I can only solve physics and quantum mechanics problems. Please switch to MathAI mode for other questions." Solve physics problems step-by-step. Use LaTeX math notation wrapped in $...$ for inline math and $$...$$ for display math. Label your answer as "Answer:" and solution steps as "Solution:".'
+      : 'You are QuantumAI, an expert ONLY in quantum mechanics, classical physics, relativity, and nuclear physics. You ONLY answer physics and quantum-related questions. If the user asks anything outside of physics (e.g. pure math, general knowledge, coding), respond with: "I can only solve physics and quantum mechanics problems. Please switch to MathAI mode for other questions." Solve physics problems step-by-step. Use LaTeX math notation wrapped in $...$ for inline math and $$...$$ for display math. Label your answer as "Answer:" and solution steps as "Solution:".'
 
     // Build user message content (supports image)
     const userContent = [];
